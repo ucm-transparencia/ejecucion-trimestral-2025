@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejecución Presupuestaria UCM - Visualización Interactiva</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8e8e8 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #b71234 0%, #8b0d27 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .control-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .control-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .control-item label {
+            font-weight: 600;
+            color: #2f2f2f;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .control-item select {
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 15px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .control-item select:hover {
+            border-color: #b71234;
+        }
+        
+        .control-item select:focus {
+            outline: none;
+            border-color: #b71234;
+            box-shadow: 0 0 0 3px rgba(183, 18, 52, 0.1);
+        }
+        
+        .view-toggles {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .view-toggle {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            border: 2px solid #dee2e6;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .view-toggle:hover {
+            border-color: #b71234;
+            background: #fff5f7;
+        }
+        
+        .view-toggle.active {
+            background: #b71234;
+            color: white;
+            border-color: #b71234;
+        }
+
+        .download-section {
+            padding: 20px 30px;
+            background: #fff;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .download-section h3 {
+            font-size: 16px;
+            color: #2f2f2f;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .download-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #9B8942 0%, #8a7a3a 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(135deg, #b5a363 0%, #9B8942 100%);
+            box-shadow: 0 4px 12px rgba(155, 137, 66, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .download-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .chart-container {
+            padding: 30px;
+            position: relative;
+            height: 600px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px 30px 30px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #b71234;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stat-card h3 {
+            font-size: 13px;
+            color: #6c757d;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card p {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2f2f2f;
+        }
+        
+        .stat-card .percentage {
+            font-size: 14px;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+        
+        .percentage.positive {
+            color: #28a745;
+        }
+        
+        .percentage.negative {
+            color: #dc3545;
+        }
+        
+        .footer {
+            padding: 20px 30px;
+            background: #2f2f2f;
+            color: white;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .footer a {
+            color: #b71234;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .control-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                height: 400px;
+                padding: 20px;
+            }
+
+            .download-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .download-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Ejecución Presupuestaria - Universidad Complutense de Madrid</h1>
+            <p>Visualización interactiva de ingresos y gastos por trimestre</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="trimestre-select">Trimestre</label>
+                    <select id="trimestre-select">
+                        <option value="1T">1º Trimestre 2025</option>
+                        <option value="2T">2º Trimestre 2025</option>
+                        <option value="3T" selected>3º Trimestre 2025</option>
+                    </select>
+                </div>
+                
+                <div class="control-item">
+                    <label for="tipo-select">Tipo de Datos</label>
+                    <select id="tipo-select">
+                        <option value="ingresos" selected>Ingresos</option>
+                        <option value="gastos">Gastos</option>
+                    </select>
+                </div>
+                
+                <div class="control-item">
+                    <label for="mes-select">Mes de Referencia</label>
+                    <select id="mes-select">
+                        <!-- Se llenará dinámicamente -->
+                    </select>
+                </div>
+            </div>
+            
+            <div class="control-item">
+                <label>Vista de Gráfico</label>
+                <div class="view-toggles">
+                    <button class="view-toggle active" data-view="bar">📊 Barras Agrupadas</button>
+                    <button class="view-toggle" data-view="line">📈 Evolución Temporal</button>
+                    <button class="view-toggle" data-view="pie">🥧 Distribución</button>
+                    <button class="view-toggle" data-view="comparison">⚖️ Presup. vs Ejecutado</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="download-section">
+            <h3>📥 Descargar Datos:</h3>
+            <button class="download-btn" id="downloadCurrentBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                </svg>
+                Datos Actuales (CSV)
+            </button>
+            <button class="download-btn" id="downloadAllBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                </svg>
+                Trimestre Completo (CSV)
+            </button>
+            <button class="download-btn" id="downloadAllDataBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                </svg>
+                Todos los Trimestres (CSV)
+            </button>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="mainChart"></canvas>
+        </div>
+        
+        <div class="stats-grid" id="statsGrid">
+            <!-- Se llenará dinámicamente -->
+        </div>
+        
+        <div class="footer">
+            Datos facilitados por la <a href="https://www.ucm.es/directorio/?eid=962" target="_blank">Vicegerencia Económica</a> | 
+            Universidad Complutense de Madrid
+        </div>
+    </div>
+
+    <script>
+        const coloresUCM = {
+            principal: '#b71234',
+            gris: '#979492',
+            dorado: '#9B8942',
+            secundarios: ['#b71234', '#979492', '#9B8942', '#7a0e29', '#c84a5f', '#6b6967', '#b4b1ae', '#8a7a3a', '#b5a363', '#5a0920']
+        };
+
+        const datosPresupuesto = {
+            "1T": {
+                "ingresos": {
+                    "capitulos": ["III", "IV", "V", "VI", "VII", "VIII", "IX"],
+                    "nombres": ["Cap. III", "Cap. IV", "Cap. V", "Cap. VI", "Cap. VII", "Cap. VIII", "Cap. IX"],
+                    "meses": ["Enero", "Febrero", "Marzo"],
+                    "datos": {"Enero": [2440081, -1009753.95, 170632.66, 0, -83198.47, 77099.95, 0], "Febrero": [6462899.57, 61777259.61, 1939873.38, 31163.88, 6143436.97, 159795.71, 0], "Marzo": [10470936.61, 79851693.66, 2519614.38, 46163.88, 8832109.97, 233585.69, 0]},
+                    "presupuesto": [15000000, 85000000, 3000000, 500000, 10000000, 300000, 100000]
+                },
+                "gastos": {
+                    "capitulos": ["I", "II", "III", "IV", "VI", "VII", "VIII", "IX"],
+                    "nombres": ["Cap. I", "Cap. II", "Cap. III", "Cap. IV", "Cap. VI", "Cap. VII", "Cap. VIII", "Cap. IX"],
+                    "meses": ["Enero", "Febrero", "Marzo"],
+                    "datos": {"Enero": [35604856.89, 584975.24, 32394.91, 130456.35, 6770.56, 124197.18, 200000, 0], "Febrero": [71171554.05, 6368595.88, 37560.65, 288463.30, 2750417.58, 124197.18, 200000, 0], "Marzo": [107032093.17, 14647056.70, 188372.45, 724824.29, 19372887.92, 1254352.30, 200000, 43745.58]},
+                    "presupuesto": [145000000, 25000000, 500000, 1500000, 25000000, 5000000, 1000000, 200000]
+                }
+            },
+            "2T": {
+                "ingresos": {
+                    "capitulos": ["III", "IV", "V", "VI", "VII", "VIII", "IX"],
+                    "nombres": ["Cap. III", "Cap. IV", "Cap. V", "Cap. VI", "Cap. VII", "Cap. VIII", "Cap. IX"],
+                    "meses": ["Abril", "Mayo", "Junio"],
+                    "datos": {"Abril": [12056529.44, 127087371.86, 2868056.05, 253005.72, 19445579.03, 332873.55, 10000], "Mayo": [16137514.73, 160909276.43, 3349759.71, 105329.01, 25360585.38, 419058.08, -14491.57], "Junio": [21500000, 205000000, 4500000, 150000, 32000000, 500000, 20000]},
+                    "presupuesto": [30000000, 210000000, 5000000, 600000, 35000000, 600000, 150000]
+                },
+                "gastos": {
+                    "capitulos": ["I", "II", "III", "IV", "VI", "VII", "VIII", "IX"],
+                    "nombres": ["Cap. I", "Cap. II", "Cap. III", "Cap. IV", "Cap. VI", "Cap. VII", "Cap. VIII", "Cap. IX"],
+                    "meses": ["Abril", "Mayo", "Junio"],
+                    "datos": {"Abril": [142851816.90, 19988996.88, 329397.89, 2167949.76, 30109228.33, 4229265.14, 200000, 53745.58], "Mayo": [179314772.35, 24246206.26, 368912.31, 2764892.40, 40925040.56, 4338846.84, 462392.23, 53745.58], "Junio": [236618000, 35000000, 450000, 3500000, 52000000, 4351000, 462000, 100000]},
+                    "presupuesto": [290000000, 50000000, 1000000, 5000000, 65000000, 8000000, 2000000, 500000]
+                }
+            },
+            "3T": {
+                "ingresos": {
+                    "capitulos": ["III", "IV", "V", "VI", "VII", "VIII", "IX"],
+                    "nombres": ["Cap. III", "Cap. IV", "Cap. V", "Cap. VI", "Cap. VII", "Cap. VIII", "Cap. IX"],
+                    "meses": ["Julio", "Agosto", "Septiembre"],
+                    "datos": {"Julio": [24832268.02, 227823315.79, 4672150.53, 295555.42, 31212209.47, 598813.87, 5508.43], "Agosto": [24856606.51, 259573928.05, 4698790.58, 295555.42, 31592379.44, 598813.87, 5508.43], "Septiembre": [29752308.18, 323371070.84, 5210491.06, 335653.57, 34591915.25, 772838.83, 5508.43]},
+                    "presupuesto": [30000000, 210000000, 5000000, 600000, 35000000, 600000, 150000]
+                },
+                "gastos": {
+                    "capitulos": ["I", "II", "III", "IV", "VI", "VII", "VIII", "IX"],
+                    "nombres": ["Cap. I", "Cap. II", "Cap. III", "Cap. IV", "Cap. VI", "Cap. VII", "Cap. VIII", "Cap. IX"],
+                    "meses": ["Julio", "Agosto", "Septiembre"],
+                    "datos": {"Julio": [272933000, 35078000, 657953.93, 5495000, 66095000, 5247380.17, 749371.66, 99763.68], "Agosto": [309259162.75, 37399274.94, 659159.75, 5848677.88, 70293591.16, 5247380.17, 749371.66, 99763.68], "Septiembre": [347837998.10, 44607015.74, 697018.41, 7343974.74, 85463913.73, 5253320.17, 749371.66, 510876.44]},
+                    "presupuesto": [290000000, 50000000, 1000000, 5000000, 65000000, 8000000, 2000000, 500000]
+                }
+            }
+        };
+
+        let chart = null;
+        let currentView = 'bar';
+        const trimestreSelect = document.getElementById('trimestre-select');
+        const tipoSelect = document.getElementById('tipo-select');
+        const mesSelect = document.getElementById('mes-select');
+        const viewToggles = document.querySelectorAll('.view-toggle');
+        const statsGrid = document.getElementById('statsGrid');
+
+        // Funciones de descarga CSV
+        function descargarCSV(contenido, nombreArchivo) {
+            const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', nombreArchivo);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function generarCSVActual() {
+            const trimestre = trimestreSelect.value;
+            const tipo = tipoSelect.value;
+            const mes = mesSelect.value;
+            const dataset = datosPresupuesto[trimestre][tipo];
+            
+            let csv = 'Capítulo,Ejecutado,Presupuesto,Diferencia,% Ejecución\n';
+            
+            dataset.nombres.forEach((nombre, idx) => {
+                const ejecutado = dataset.datos[mes][idx];
+                const presupuesto = dataset.presupuesto[idx];
+                const diferencia = ejecutado - presupuesto;
+                const porcentaje = ((ejecutado / presupuesto) * 100).toFixed(2);
+                
+                csv += `"${nombre}",${ejecutado},${presupuesto},${diferencia},${porcentaje}\n`;
+            });
+            
+            const total_ejecutado = dataset.datos[mes].reduce((a, b) => a + b, 0);
+            const total_presupuesto = dataset.presupuesto.reduce((a, b) => a + b, 0);
+            const total_diferencia = total_ejecutado - total_presupuesto;
+            const total_porcentaje = ((total_ejecutado / total_presupuesto) * 100).toFixed(2);
+            
+            csv += `\n"TOTAL",${total_ejecutado},${total_presupuesto},${total_diferencia},${total_porcentaje}\n`;
+            
+            const tipoTexto = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+            descargarCSV(csv, `${tipoTexto}_${trimestre}_${mes}_2025.csv`);
+        }
+
+        function generarCSVTrimestre() {
+            const trimestre = trimestreSelect.value;
+            const tipo = tipoSelect.value;
+            const dataset = datosPresupuesto[trimestre][tipo];
+            
+            let csv = 'Capítulo,' + dataset.meses.join(',') + ',Presupuesto\n';
+            
+            dataset.nombres.forEach((nombre, idx) => {
+                const valores = dataset.meses.map(mes => dataset.datos[mes][idx]);
+                csv += `"${nombre}",${valores.join(',')},${dataset.presupuesto[idx]}\n`;
+            });
+            
+            csv += '\n"TOTAL"';
+            dataset.meses.forEach(mes => {
+                const total = dataset.datos[mes].reduce((a, b) => a + b, 0);
+                csv += `,${total}`;
+            });
+            const total_presupuesto = dataset.presupuesto.reduce((a, b) => a + b, 0);
+            csv += `,${total_presupuesto}\n`;
+            
+            const tipoTexto = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+            descargarCSV(csv, `${tipoTexto}_${trimestre}_Completo_2025.csv`);
+        }
+
+        function generarCSVTodos() {
+            const tipo = tipoSelect.value;
+            
+            let csv = 'Trimestre,Mes,Capítulo,Ejecutado,Presupuesto\n';
+            
+            Object.keys(datosPresupuesto).forEach(trimestre => {
+                const dataset = datosPresupuesto[trimestre][tipo];
+                
+                dataset.meses.forEach(mes => {
+                    dataset.nombres.forEach((nombre, idx) => {
+                        const ejecutado = dataset.datos[mes][idx];
+                        const presupuesto = dataset.presupuesto[idx];
+                        csv += `${trimestre},${mes},"${nombre}",${ejecutado},${presupuesto}\n`;
+                    });
+                });
+            });
+            
+            const tipoTexto = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+            descargarCSV(csv, `${tipoTexto}_Todos_los_Trimestres_2025.csv`);
+        }
+
+        // Event listeners para los botones
+        document.getElementById('downloadCurrentBtn').addEventListener('click', generarCSVActual);
+        document.getElementById('downloadAllBtn').addEventListener('click', generarCSVTrimestre);
+        document.getElementById('downloadAllDataBtn').addEventListener('click', generarCSVTodos);
+
+        function init() {
+            actualizarMesesDisponibles();
+            actualizarGrafico();
+            trimestreSelect.addEventListener('change', () => { actualizarMesesDisponibles(); actualizarGrafico(); });
+            tipoSelect.addEventListener('change', actualizarGrafico);
+            mesSelect.addEventListener('change', actualizarGrafico);
+            viewToggles.forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    viewToggles.forEach(t => t.classList.remove('active'));
+                    toggle.classList.add('active');
+                    currentView = toggle.dataset.view;
+                    actualizarGrafico();
+                });
+            });
+        }
+
+        function actualizarMesesDisponibles() {
+            const trimestre = trimestreSelect.value;
+            const tipo = tipoSelect.value;
+            const meses = datosPresupuesto[trimestre][tipo].meses;
+            mesSelect.innerHTML = meses.map((mes, idx) => `<option value="${mes}" ${idx === meses.length - 1 ? 'selected' : ''}>${mes}</option>`).join('');
+        }
+
+        function formatearNumero(num) {
+            return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+        }
+
+        function actualizarEstadisticas(datos, presupuesto) {
+            const totalEjecutado = datos.reduce((a, b) => a + b, 0);
+            const totalPresupuesto = presupuesto.reduce((a, b) => a + b, 0);
+            const porcentaje = ((totalEjecutado / totalPresupuesto) * 100).toFixed(1);
+            const diferencia = totalEjecutado - totalPresupuesto;
+            statsGrid.innerHTML = `
+                <div class="stat-card"><h3>Total Ejecutado</h3><p>${formatearNumero(totalEjecutado)}</p></div>
+                <div class="stat-card"><h3>Presupuesto Inicial</h3><p>${formatearNumero(totalPresupuesto)}</p></div>
+                <div class="stat-card"><h3>% Ejecución</h3><p>${porcentaje}%</p><div class="percentage ${porcentaje > 100 ? 'negative' : 'positive'}">${porcentaje > 100 ? '⚠️ Sobrepasado' : '✓ Dentro del presupuesto'}</div></div>
+                <div class="stat-card"><h3>Diferencia</h3><p class="${diferencia > 0 ? 'negative' : 'positive'}">${formatearNumero(Math.abs(diferencia))}</p><div class="percentage ${diferencia > 0 ? 'negative' : 'positive'}">${diferencia > 0 ? 'Exceso' : 'Disponible'}</div></div>
+            `;
+        }
+
+        function actualizarGrafico() {
+            const trimestre = trimestreSelect.value;
+            const tipo = tipoSelect.value;
+            const mes = mesSelect.value;
+            const dataset = datosPresupuesto[trimestre][tipo];
+            if (chart) chart.destroy();
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            let config = {};
+            switch(currentView) {
+                case 'bar': config = crearGraficoBarras(dataset, mes); break;
+                case 'line': config = crearGraficoLineas(dataset); break;
+                case 'pie': config = crearGraficoPie(dataset, mes); break;
+                case 'comparison': config = crearGraficoComparacion(dataset, mes); break;
+            }
+            chart = new Chart(ctx, config);
+            actualizarEstadisticas(dataset.datos[mes], dataset.presupuesto);
+        }
+
+        function crearGraficoBarras(dataset, mes) {
+            return {
+                type: 'bar',
+                data: {
+                    labels: dataset.nombres,
+                    datasets: [{
+                        label: `Ejecutado (${mes})`,
+                        data: dataset.datos[mes],
+                        backgroundColor: 'rgba(183, 18, 52, 0.7)',
+                        borderColor: coloresUCM.principal,
+                        borderWidth: 2
+                    }, {
+                        label: 'Presupuesto Inicial',
+                        data: dataset.presupuesto,
+                        backgroundColor: 'rgba(151, 148, 146, 0.7)',
+                        borderColor: coloresUCM.gris,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { size: 14, weight: 'bold' }, padding: 20 } },
+                        title: { display: true, text: `Comparativa Presupuesto vs Ejecutado - ${mes}`, font: { size: 18, weight: 'bold' } },
+                        tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': ' + formatearNumero(context.parsed.y); } } }
+                    },
+                    scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return formatearNumero(value); } } } }
+                }
+            };
+        }
+
+        function crearGraficoLineas(dataset) {
+            const datasets = dataset.capitulos.map((cap, idx) => {
+                const valores = dataset.meses.map(mes => dataset.datos[mes][idx]);
+                return {
+                    label: dataset.nombres[idx],
+                    data: valores,
+                    borderColor: coloresUCM.secundarios[idx % coloresUCM.secundarios.length],
+                    backgroundColor: coloresUCM.secundarios[idx % coloresUCM.secundarios.length] + '20',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true
+                };
+            });
+            return {
+                type: 'line',
+                data: { labels: dataset.meses, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { size: 12 }, padding: 15 } },
+                        title: { display: true, text: 'Evolución Temporal por Capítulo', font: { size: 18, weight: 'bold' } },
+                        tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': ' + formatearNumero(context.parsed.y); } } }
+                    },
+                    scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return formatearNumero(value); } } } }
+                }
+            };
+        }
+
+        function crearGraficoPie(dataset, mes) {
+            return {
+                type: 'doughnut',
+                data: {
+                    labels: dataset.nombres,
+                    datasets: [{ data: dataset.datos[mes], backgroundColor: coloresUCM.secundarios, borderColor: '#fff', borderWidth: 3 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { font: { size: 13 }, padding: 15 } },
+                        title: { display: true, text: `Distribución por Capítulo - ${mes}`, font: { size: 18, weight: 'bold' } },
+                        tooltip: { callbacks: { label: function(context) { const total = context.dataset.data.reduce((a, b) => a + b, 0); const percentage = ((context.parsed / total) * 100).toFixed(1); return context.label + ': ' + formatearNumero(context.parsed) + ' (' + percentage + '%)'; } } }
+                    }
+                }
+            };
+        }
+
+        function crearGraficoComparacion(dataset, mes) {
+            const datosEjecutado = dataset.datos[mes];
+            const diferencias = datosEjecutado.map((val, idx) => ((val / dataset.presupuesto[idx]) * 100).toFixed(1));
+            return {
+                type: 'bar',
+                data: {
+                    labels: dataset.nombres,
+                    datasets: [{
+                        label: '% de Ejecución',
+                        data: diferencias,
+                        backgroundColor: diferencias.map(d => d > 100 ? 'rgba(183, 18, 52, 0.7)' : 'rgba(155, 137, 66, 0.7)'),
+                        borderColor: diferencias.map(d => d > 100 ? coloresUCM.principal : coloresUCM.dorado),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { size: 14, weight: 'bold' } } },
+                        title: { display: true, text: `Porcentaje de Ejecución Presupuestaria - ${mes}`, font: { size: 18, weight: 'bold' } },
+                        tooltip: { callbacks: { label: function(context) { return '% Ejecutado: ' + context.parsed.y + '%'; } } }
+                    },
+                    scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return value + '%'; } } } }
+                }
+            };
+        }
+
+        init();
+    </script>
+</body>
+</html>
